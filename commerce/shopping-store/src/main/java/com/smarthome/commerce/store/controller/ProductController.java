@@ -3,6 +3,7 @@ package com.smarthome.commerce.store.controller;
 import com.smarthome.commerce.api.dto.Availability;
 import com.smarthome.commerce.api.dto.ProductDto;
 import com.smarthome.commerce.api.dto.State;
+import com.smarthome.commerce.api.store.ProductApi;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -10,10 +11,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/products")
-public class ProductController {
+public class ProductController implements ProductApi {
     private final Map<Long, ProductDto> products = new HashMap<>();
 
     public ProductController() {
@@ -21,13 +23,14 @@ public class ProductController {
         products.put(2L, new ProductDto(2L, "Temperature Sensor", "Wireless temperature sensor", "SENSORS", BigDecimal.valueOf(29.99), Availability.ENOUGH, State.ACTIVE, List.of()));
     }
 
-    @GetMapping
-    public Collection<ProductDto> list() {
-        return products.values();
+    @Override
+    public Collection<ProductDto> list(String category) {
+        if (category == null || category.isBlank()) return products.values();
+        return products.values().stream().filter(p -> category.equalsIgnoreCase(p.category())).collect(Collectors.toList());
     }
 
-    @GetMapping("/{id}")
-    public ProductDto get(@PathVariable Long id) {
+    @Override
+    public ProductDto get(Long id) {
         return products.get(id);
     }
 

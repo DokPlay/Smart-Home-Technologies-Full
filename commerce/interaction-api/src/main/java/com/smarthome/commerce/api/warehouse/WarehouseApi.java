@@ -1,12 +1,13 @@
 package com.smarthome.commerce.api.warehouse;
 
-import com.smarthome.commerce.api.dto.WarehouseAddress;
+import java.util.Map;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.util.Map;
+import com.smarthome.commerce.api.dto.WarehouseAddress;
 
 @RequestMapping("/api/warehouse")
 public interface WarehouseApi {
