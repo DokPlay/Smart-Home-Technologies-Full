@@ -11,6 +11,8 @@
 
     <modules>
         <module>commerce</module>
+        <module>config-server</module>
+        <module>eureka-server</module>
     </modules>
 
     <properties>

@@ -1,7 +1,9 @@
 package com.smarthome.commerce.warehouse.controller;
 
 import com.smarthome.commerce.api.dto.WarehouseAddress;
-import org.springframework.web.bind.annotation.*;
+import com.smarthome.commerce.api.warehouse.WarehouseApi;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.security.SecureRandom;
 import java.util.HashMap;
@@ -9,7 +11,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/warehouse")
-public class WarehouseController {
+public class WarehouseController implements WarehouseApi {
     private static final String[] ADDRESSES = new String[]{"ADDRESS_1","ADDRESS_2"};
     private static final String CURRENT_ADDRESS = ADDRESSES[new SecureRandom().nextInt(ADDRESSES.length)];
 
@@ -21,8 +23,8 @@ public class WarehouseController {
         stock.put(2L, 50);
     }
 
-    @PostMapping("/check")
-    public Map<Long, String> checkAvailability(@RequestBody Map<Long, Integer> items) {
+    @Override
+    public Map<Long, String> checkAvailability(Map<Long, Integer> items) {
         Map<Long, String> result = new HashMap<>();
         for (var e : items.entrySet()) {
             long id = e.getKey();
@@ -37,14 +39,13 @@ public class WarehouseController {
         return result;
     }
 
-    @GetMapping("/address")
+    @Override
     public WarehouseAddress getAddress() {
         return new WarehouseAddress(CURRENT_ADDRESS, CURRENT_ADDRESS, CURRENT_ADDRESS, CURRENT_ADDRESS, CURRENT_ADDRESS);
     }
 
-    @PostMapping("/admin/add")
-    public Map<String, Object> addStock(@RequestBody Map<String, Object> body) {
-        // body: { "productId": 3, "quantity": 10 }
+    // admin helper
+    public Map<String, Object> addStock(Map<String, Object> body) {
         Long productId = ((Number) body.getOrDefault("productId", 0)).longValue();
         Integer qty = ((Number) body.getOrDefault("quantity", 0)).intValue();
         stock.merge(productId, qty, Integer::sum);

@@ -8,14 +8,25 @@
         <artifactId>smart-home-technologies-full</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>interaction-api</artifactId>
-    <packaging>jar</packaging>
+    <artifactId>config-server</artifactId>
 
-    <name>interaction-api (DTOs and Feign interfaces)</name>
     <dependencies>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-config-server</artifactId>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>
