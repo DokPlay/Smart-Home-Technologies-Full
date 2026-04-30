@@ -6,6 +6,9 @@ spring:
   application:
     name: config-server
   cloud:
+    compatibility-verifier:
+      enabled: false
+  cloud:
     config:
       server:
         native:
