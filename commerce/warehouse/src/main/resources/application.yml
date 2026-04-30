@@ -1,0 +1,10 @@
+server:
+  port: 0
+spring:
+  application:
+    name: warehouse
+eureka:
+  client:
+    enabled: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
