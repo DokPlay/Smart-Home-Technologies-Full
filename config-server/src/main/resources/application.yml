@@ -8,7 +8,6 @@ spring:
   cloud:
     compatibility-verifier:
       enabled: false
-  cloud:
     config:
       server:
         native:
