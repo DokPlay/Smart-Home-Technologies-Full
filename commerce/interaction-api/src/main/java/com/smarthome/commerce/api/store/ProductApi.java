@@ -1,12 +1,13 @@
 package com.smarthome.commerce.api.store;
 
-import com.smarthome.commerce.api.dto.ProductDto;
+import java.util.Collection;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.Collection;
+import com.smarthome.commerce.api.dto.ProductDto;
 
 @RequestMapping("/api/products")
 public interface ProductApi {
