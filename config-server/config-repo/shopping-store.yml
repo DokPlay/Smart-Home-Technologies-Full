@@ -2,7 +2,7 @@ spring:
   application:
     name: shopping-store
 server:
-  port: 0
+  port: 8092
 spring:
   application:
     name: shopping-store
