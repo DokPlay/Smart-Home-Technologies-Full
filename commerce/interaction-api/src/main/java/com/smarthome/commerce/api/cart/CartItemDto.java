@@ -1,4 +1,6 @@
 package com.smarthome.commerce.api.cart;
 
-public record CartItemDto(Long productId, Integer quantity) {
+import java.util.UUID;
+
+public record CartItemDto(UUID productId, Long quantity) {
 }

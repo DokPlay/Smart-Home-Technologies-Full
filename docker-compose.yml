@@ -1,0 +1,130 @@
+name: smart-home-technologies
+
+x-commerce-environment: &commerce-environment
+  SERVER_PORT: 8080
+  CONFIG_SERVER_URL: http://config-server:8888
+  EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+  EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+  EUREKA_INSTANCE_NON_SECURE_PORT: 8080
+  SPRING_DATASOURCE_USERNAME: smarthome
+  SPRING_DATASOURCE_PASSWORD: smarthome
+  SPRING_JPA_HIBERNATE_DDL_AUTO: update
+  SPRING_JPA_OPEN_IN_VIEW: "false"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: smarthome
+      POSTGRES_USER: smarthome
+      POSTGRES_PASSWORD: smarthome
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smarthome -d smarthome"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  eureka-server:
+    image: smart-home/eureka-server:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: eureka-server
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8761/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  config-server:
+    image: smart-home/config-server:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: file:/app/config-repo
+    ports:
+      - "8888:8888"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8888/shopping-cart/default || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+
+  warehouse:
+    image: smart-home/warehouse:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: commerce/warehouse
+    environment:
+      <<: *commerce-environment
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smarthome?currentSchema=warehouse
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: warehouse
+    ports:
+      - "8083:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+  shopping-store:
+    image: smart-home/shopping-store:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: commerce/shopping-store
+    environment:
+      <<: *commerce-environment
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smarthome?currentSchema=shopping_store
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: shopping_store
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+  shopping-cart:
+    image: smart-home/shopping-cart:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: commerce/shopping-cart
+    environment:
+      <<: *commerce-environment
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smarthome?currentSchema=shopping_cart
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: shopping_cart
+    ports:
+      - "8082:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      warehouse:
+        condition: service_started

@@ -1,9 +1,17 @@
 spring:
   application:
     name: warehouse
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:warehouse;MODE=PostgreSQL;DB_CLOSE_DELAY=-1}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    open-in-view: ${SPRING_JPA_OPEN_IN_VIEW:false}
 server:
-  port: 8091
+  port: ${SERVER_PORT:0}
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka/}}
