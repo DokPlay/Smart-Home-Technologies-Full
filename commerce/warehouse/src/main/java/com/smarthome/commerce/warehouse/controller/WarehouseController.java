@@ -7,9 +7,11 @@ import com.smarthome.commerce.api.warehouse.BookedProductsDto;
 import com.smarthome.commerce.api.warehouse.NewProductInWarehouseRequest;
 import com.smarthome.commerce.api.warehouse.WarehouseApi;
 import com.smarthome.commerce.warehouse.service.WarehouseService;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequestMapping("/api/v1/warehouse")
 public class WarehouseController implements WarehouseApi {
 
     private final WarehouseService warehouseService;

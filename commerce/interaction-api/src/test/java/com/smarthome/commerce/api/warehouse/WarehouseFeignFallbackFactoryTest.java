@@ -1,4 +1,4 @@
-package com.smarthome.commerce.cart.feign;
+package com.smarthome.commerce.api.warehouse;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -6,10 +6,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.smarthome.commerce.api.cart.ShoppingCartDto;
-import com.smarthome.commerce.api.warehouse.AddProductToWarehouseRequest;
-import com.smarthome.commerce.api.warehouse.DimensionDto;
-import com.smarthome.commerce.api.warehouse.NewProductInWarehouseRequest;
-import com.smarthome.commerce.cart.exception.WarehouseServiceUnavailableException;
 import org.junit.jupiter.api.Test;
 
 class WarehouseFeignFallbackFactoryTest {
@@ -19,7 +15,7 @@ class WarehouseFeignFallbackFactoryTest {
     @Test
     void fallbackReportsWarehouseUnavailableForCartStockChecks() {
         Throwable cause = new IllegalStateException("connection refused");
-        WarehouseFeignClient fallback = fallbackFactory.create(cause);
+        WarehouseApi fallback = fallbackFactory.create(cause);
         ShoppingCartDto cart = new ShoppingCartDto(UUID.randomUUID(), Map.of(UUID.randomUUID(), 1L));
 
         assertThatThrownBy(() -> fallback.checkProductQuantityEnoughForShoppingCart(cart))
@@ -31,10 +27,10 @@ class WarehouseFeignFallbackFactoryTest {
     @Test
     void fallbackUsesSameUnavailableResponseForAllWarehouseCalls() {
         Throwable cause = new IllegalStateException("timeout");
-        WarehouseFeignClient fallback = fallbackFactory.create(cause);
+        WarehouseApi fallback = fallbackFactory.create(cause);
         UUID productId = UUID.randomUUID();
 
-        assertThatThrownBy(() -> fallback.getWarehouseAddress())
+        assertThatThrownBy(fallback::getWarehouseAddress)
                 .isInstanceOf(WarehouseServiceUnavailableException.class)
                 .hasCause(cause);
         assertThatThrownBy(() -> fallback.addProductToWarehouse(new AddProductToWarehouseRequest(productId, 1L)))

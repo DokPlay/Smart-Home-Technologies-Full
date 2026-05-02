@@ -1,6 +1,6 @@
 package com.smarthome.commerce.cart.controller;
 
-import com.smarthome.commerce.cart.exception.WarehouseServiceUnavailableException;
+import com.smarthome.commerce.api.warehouse.WarehouseServiceUnavailableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;

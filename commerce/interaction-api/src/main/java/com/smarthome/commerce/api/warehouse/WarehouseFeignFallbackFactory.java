@@ -1,27 +1,22 @@
-package com.smarthome.commerce.cart.feign;
+package com.smarthome.commerce.api.warehouse;
 
 import com.smarthome.commerce.api.cart.ShoppingCartDto;
-import com.smarthome.commerce.api.warehouse.AddProductToWarehouseRequest;
-import com.smarthome.commerce.api.warehouse.AddressDto;
-import com.smarthome.commerce.api.warehouse.BookedProductsDto;
-import com.smarthome.commerce.api.warehouse.NewProductInWarehouseRequest;
-import com.smarthome.commerce.cart.exception.WarehouseServiceUnavailableException;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
 @Component
-public class WarehouseFeignFallbackFactory implements FallbackFactory<WarehouseFeignClient> {
+public class WarehouseFeignFallbackFactory implements FallbackFactory<WarehouseApi> {
 
     @Override
-    public WarehouseFeignClient create(Throwable cause) {
-        return new WarehouseFeignFallback(cause);
+    public WarehouseApi create(Throwable cause) {
+        return new WarehouseApiFallback(cause);
     }
 
-    private static class WarehouseFeignFallback implements WarehouseFeignClient {
+    private static class WarehouseApiFallback implements WarehouseApi {
 
         private final Throwable cause;
 
-        private WarehouseFeignFallback(Throwable cause) {
+        private WarehouseApiFallback(Throwable cause) {
             this.cause = cause;
         }
 

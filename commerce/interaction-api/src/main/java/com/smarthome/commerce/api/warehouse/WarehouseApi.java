@@ -1,22 +1,24 @@
 package com.smarthome.commerce.api.warehouse;
 
 import com.smarthome.commerce.api.cart.ShoppingCartDto;
+import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+@FeignClient(name = "warehouse", path = "/api/v1/warehouse", fallbackFactory = WarehouseFeignFallbackFactory.class)
 public interface WarehouseApi {
 
-    @PutMapping("/api/v1/warehouse")
+    @PutMapping
     void newProductInWarehouse(@RequestBody NewProductInWarehouseRequest request);
 
-    @PostMapping("/api/v1/warehouse/check")
+    @PostMapping("/check")
     BookedProductsDto checkProductQuantityEnoughForShoppingCart(@RequestBody ShoppingCartDto shoppingCart);
 
-    @PostMapping("/api/v1/warehouse/add")
+    @PostMapping("/add")
     void addProductToWarehouse(@RequestBody AddProductToWarehouseRequest request);
 
-    @GetMapping("/api/v1/warehouse/address")
+    @GetMapping("/address")
     AddressDto getWarehouseAddress();
 }

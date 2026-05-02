@@ -15,10 +15,10 @@ import java.util.UUID;
 import com.smarthome.commerce.api.cart.ChangeProductQuantityRequest;
 import com.smarthome.commerce.api.cart.ShoppingCartDto;
 import com.smarthome.commerce.api.warehouse.BookedProductsDto;
+import com.smarthome.commerce.api.warehouse.WarehouseApi;
 import com.smarthome.commerce.cart.exception.CartInactiveException;
 import com.smarthome.commerce.cart.exception.InvalidShoppingCartRequestException;
 import com.smarthome.commerce.cart.exception.NoProductsInShoppingCartException;
-import com.smarthome.commerce.cart.feign.WarehouseFeignClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -37,12 +37,12 @@ class CartServiceTest {
     private CartService cartService;
 
     @MockBean
-    private WarehouseFeignClient warehouseFeignClient;
+    private WarehouseApi warehouseApi;
 
     @Test
     void addProductChecksWarehouseAndStoresProductInCart() {
         UUID productId = UUID.randomUUID();
-        when(warehouseFeignClient.checkProductQuantityEnoughForShoppingCart(argThat(cart ->
+        when(warehouseApi.checkProductQuantityEnoughForShoppingCart(argThat(cart ->
                 cart != null && cart.products().get(productId).equals(2L)
         ))).thenReturn(new BookedProductsDto(2.0, 4.0, false));
 
@@ -50,7 +50,7 @@ class CartServiceTest {
 
         assertThat(cart.shoppingCartId()).isNotNull();
         assertThat(cart.products()).containsEntry(productId, 2L);
-        verify(warehouseFeignClient).checkProductQuantityEnoughForShoppingCart(argThat(checkedCart ->
+        verify(warehouseApi).checkProductQuantityEnoughForShoppingCart(argThat(checkedCart ->
                 checkedCart.products().get(productId).equals(2L)
         ));
     }
@@ -58,10 +58,10 @@ class CartServiceTest {
     @Test
     void addingSameProductChecksWarehouseForTotalQuantity() {
         UUID productId = UUID.randomUUID();
-        when(warehouseFeignClient.checkProductQuantityEnoughForShoppingCart(argThat(cart ->
+        when(warehouseApi.checkProductQuantityEnoughForShoppingCart(argThat(cart ->
                 cart != null && cart.products().get(productId).equals(2L)
         ))).thenReturn(new BookedProductsDto(2.0, 4.0, false));
-        when(warehouseFeignClient.checkProductQuantityEnoughForShoppingCart(argThat(cart ->
+        when(warehouseApi.checkProductQuantityEnoughForShoppingCart(argThat(cart ->
                 cart != null && cart.products().get(productId).equals(5L)
         ))).thenReturn(new BookedProductsDto(5.0, 10.0, false));
 
@@ -69,7 +69,7 @@ class CartServiceTest {
         ShoppingCartDto cart = cartService.addProductToShoppingCart("bob", Map.of(productId, 3L));
 
         assertThat(cart.products()).containsEntry(productId, 5L);
-        verify(warehouseFeignClient).checkProductQuantityEnoughForShoppingCart(argThat(checkedCart ->
+        verify(warehouseApi).checkProductQuantityEnoughForShoppingCart(argThat(checkedCart ->
                 checkedCart != null && checkedCart.products().get(productId).equals(5L)
         ));
     }
@@ -81,17 +81,17 @@ class CartServiceTest {
         assertThatThrownBy(() -> cartService.addProductToShoppingCart("alice", Map.of(productId, 0L)))
                 .isInstanceOf(InvalidShoppingCartRequestException.class);
 
-        verifyNoInteractions(warehouseFeignClient);
+        verifyNoInteractions(warehouseApi);
     }
 
     @Test
     void changeProductQuantityRejectsMissingQuantityBeforeWarehouseCall() {
         UUID productId = UUID.randomUUID();
-        when(warehouseFeignClient.checkProductQuantityEnoughForShoppingCart(argThat(cart ->
+        when(warehouseApi.checkProductQuantityEnoughForShoppingCart(argThat(cart ->
                 cart != null && cart.products().get(productId).equals(1L)
         ))).thenReturn(new BookedProductsDto(1.0, 1.0, false));
         cartService.addProductToShoppingCart("erin", Map.of(productId, 1L));
-        reset(warehouseFeignClient);
+        reset(warehouseApi);
 
         assertThatThrownBy(() -> cartService.changeProductQuantity(
                 "erin",
@@ -99,13 +99,13 @@ class CartServiceTest {
         ))
                 .isInstanceOf(InvalidShoppingCartRequestException.class);
 
-        verifyNoInteractions(warehouseFeignClient);
+        verifyNoInteractions(warehouseApi);
     }
 
     @Test
     void deactivatedCartCannotBeModified() {
         UUID productId = UUID.randomUUID();
-        when(warehouseFeignClient.checkProductQuantityEnoughForShoppingCart(argThat(cart ->
+        when(warehouseApi.checkProductQuantityEnoughForShoppingCart(argThat(cart ->
                 cart != null && cart.products().get(productId).equals(1L)
         ))).thenReturn(new BookedProductsDto(1.0, 1.0, false));
         cartService.addProductToShoppingCart("carol", Map.of(productId, 1L));

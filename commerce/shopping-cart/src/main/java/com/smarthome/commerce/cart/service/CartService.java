@@ -7,11 +7,11 @@ import java.util.UUID;
 
 import com.smarthome.commerce.api.cart.ChangeProductQuantityRequest;
 import com.smarthome.commerce.api.cart.ShoppingCartDto;
+import com.smarthome.commerce.api.warehouse.WarehouseApi;
 import com.smarthome.commerce.cart.exception.CartInactiveException;
 import com.smarthome.commerce.cart.exception.InvalidShoppingCartRequestException;
 import com.smarthome.commerce.cart.exception.NoProductsInShoppingCartException;
 import com.smarthome.commerce.cart.exception.NotAuthorizedUserException;
-import com.smarthome.commerce.cart.feign.WarehouseFeignClient;
 import com.smarthome.commerce.cart.mapper.ShoppingCartMapper;
 import com.smarthome.commerce.cart.model.ShoppingCartEntity;
 import com.smarthome.commerce.cart.repository.ShoppingCartRepository;
@@ -23,13 +23,13 @@ public class CartService {
 
     private final ShoppingCartRepository shoppingCartRepository;
     private final ShoppingCartMapper shoppingCartMapper;
-    private final WarehouseFeignClient warehouseFeignClient;
+    private final WarehouseApi warehouseApi;
 
     public CartService(ShoppingCartRepository shoppingCartRepository, ShoppingCartMapper shoppingCartMapper,
-                       WarehouseFeignClient warehouseFeignClient) {
+                       WarehouseApi warehouseApi) {
         this.shoppingCartRepository = shoppingCartRepository;
         this.shoppingCartMapper = shoppingCartMapper;
-        this.warehouseFeignClient = warehouseFeignClient;
+        this.warehouseApi = warehouseApi;
     }
 
     @Transactional
@@ -45,7 +45,7 @@ public class CartService {
 
         Map<UUID, Long> projectedProducts = currentProducts(cart);
         products.forEach((productId, quantity) -> projectedProducts.merge(productId, quantity, Long::sum));
-        warehouseFeignClient.checkProductQuantityEnoughForShoppingCart(
+        warehouseApi.checkProductQuantityEnoughForShoppingCart(
                 new ShoppingCartDto(cart.getShoppingCartId(), projectedProducts)
         );
 
@@ -89,7 +89,7 @@ public class CartService {
         }
 
         projectedProducts.put(request.productId(), request.newQuantity());
-        warehouseFeignClient.checkProductQuantityEnoughForShoppingCart(
+        warehouseApi.checkProductQuantityEnoughForShoppingCart(
                 new ShoppingCartDto(cart.getShoppingCartId(), projectedProducts)
         );
         cart.setItemQuantity(request.productId(), request.newQuantity());

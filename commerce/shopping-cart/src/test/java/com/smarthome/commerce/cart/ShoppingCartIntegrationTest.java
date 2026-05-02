@@ -2,7 +2,7 @@ package com.smarthome.commerce.cart;
 
 import com.smarthome.commerce.api.cart.ShoppingCartDto;
 import com.smarthome.commerce.api.warehouse.BookedProductsDto;
-import com.smarthome.commerce.cart.feign.WarehouseFeignClient;
+import com.smarthome.commerce.api.warehouse.WarehouseApi;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,16 +27,16 @@ public class ShoppingCartIntegrationTest {
     private ShoppingCartApplication app;
 
     @MockBean
-    private WarehouseFeignClient warehouseFeignClient;
+    private WarehouseApi warehouseApi;
 
     @Test
     void addItem_whenWarehouseHasEnough_stockAccepted() {
         UUID productId = UUID.randomUUID();
         ShoppingCartDto cart = new ShoppingCartDto(UUID.randomUUID(), Map.of(productId, 2L));
-        when(warehouseFeignClient.checkProductQuantityEnoughForShoppingCart(cart))
+        when(warehouseApi.checkProductQuantityEnoughForShoppingCart(cart))
                 .thenReturn(new BookedProductsDto(2.0, 4.0, false));
 
-        var result = warehouseFeignClient.checkProductQuantityEnoughForShoppingCart(cart);
+        var result = warehouseApi.checkProductQuantityEnoughForShoppingCart(cart);
 
         assertThat(result.deliveryWeight()).isEqualTo(2.0);
     }

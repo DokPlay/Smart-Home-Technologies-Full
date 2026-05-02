@@ -1,4 +1,4 @@
-package com.smarthome.commerce.cart.exception;
+package com.smarthome.commerce.api.warehouse;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;

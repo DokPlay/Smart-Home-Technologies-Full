@@ -18,8 +18,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smarthome.commerce.api.cart.ChangeProductQuantityRequest;
 import com.smarthome.commerce.api.cart.ShoppingCartDto;
 import com.smarthome.commerce.api.warehouse.BookedProductsDto;
-import com.smarthome.commerce.cart.exception.WarehouseServiceUnavailableException;
-import com.smarthome.commerce.cart.feign.WarehouseFeignClient;
+import com.smarthome.commerce.api.warehouse.WarehouseApi;
+import com.smarthome.commerce.api.warehouse.WarehouseServiceUnavailableException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -45,12 +45,12 @@ class CartControllerContractTest {
     private ObjectMapper objectMapper;
 
     @MockBean
-    private WarehouseFeignClient warehouseFeignClient;
+    private WarehouseApi warehouseApi;
 
     @Test
     void openApiCartRoutesCreateModifyRemoveAndDeactivateCart() throws Exception {
         UUID productId = UUID.randomUUID();
-        when(warehouseFeignClient.checkProductQuantityEnoughForShoppingCart(any(ShoppingCartDto.class)))
+        when(warehouseApi.checkProductQuantityEnoughForShoppingCart(any(ShoppingCartDto.class)))
                 .thenReturn(new BookedProductsDto(2.0, 4.0, false));
 
         mockMvc.perform(get("/api/v1/shopping-cart")
@@ -96,7 +96,7 @@ class CartControllerContractTest {
     @Test
     void addProductReturnsServiceUnavailableWhenWarehouseCannotBeReached() throws Exception {
         UUID productId = UUID.randomUUID();
-        when(warehouseFeignClient.checkProductQuantityEnoughForShoppingCart(any(ShoppingCartDto.class)))
+        when(warehouseApi.checkProductQuantityEnoughForShoppingCart(any(ShoppingCartDto.class)))
                 .thenThrow(new WarehouseServiceUnavailableException(new IllegalStateException("warehouse is down")));
 
         mockMvc.perform(put("/api/v1/shopping-cart")
