@@ -1,0 +1,14 @@
+.git
+**/target
+*.iml
+.idea
+.vscode
+.settings
+.gemini
+.github
+skills
+AGENTS.md
+*.log
+*.class
+*.swp
+.DS_Store
