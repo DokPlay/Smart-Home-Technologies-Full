@@ -177,8 +177,12 @@ docker compose up --build -d
 
 This repository is the backend part of the store. A public website, admin panel, CMS, or CRM should connect to it through REST APIs. In production, expose only the public API entrypoint through HTTPS; keep PostgreSQL, Eureka, Config Server, Prometheus, and internal service ports private.
 
+![Click or tap to expand the setup sections below](docs/assets/click-to-expand.svg)
+
+> Each section below is expandable: click the colored title or arrow to open setup notes.
+
 <details>
-<summary>Website or frontend application</summary>
+<summary><strong>🟦 Website or frontend application</strong> <sub>click/tap to expand</sub></summary>
 
 Use the store backend as an API for any frontend: React, Next.js, Vue, a static website, a mobile app, or a CMS theme.
 
@@ -234,7 +238,7 @@ For production websites, prefer one public API domain, for example `https://api.
 </details>
 
 <details>
-<summary>Hosting with Docker Compose</summary>
+<summary><strong>🟩 Hosting with Docker Compose</strong> <sub>click/tap to expand</sub></summary>
 
 Use this option for a VPS, dedicated server, or platform that supports Docker Compose.
 
@@ -268,7 +272,7 @@ For production, do not publish internal infrastructure directly to the internet.
 </details>
 
 <details>
-<summary>Reverse proxy for one public API domain</summary>
+<summary><strong>🟪 Reverse proxy for one public API domain</strong> <sub>click/tap to expand</sub></summary>
 
 A reverse proxy lets the website use one stable API base URL while services remain separated internally.
 
@@ -316,7 +320,7 @@ Expose Swagger, Actuator, Prometheus, and Grafana only when you intentionally ne
 </details>
 
 <details>
-<summary>CMS or CRM integration</summary>
+<summary><strong>🟨 CMS or CRM integration</strong> <sub>click/tap to expand</sub></summary>
 
 Connect a CMS or CRM as an external REST client. The CMS/CRM should call the same public API domain that the website uses.
 
@@ -338,7 +342,7 @@ Current sprint scope includes product catalog, shopping cart, and warehouse. Ful
 </details>
 
 <details>
-<summary>Production checklist before exposing the API</summary>
+<summary><strong>🟥 Production checklist before exposing the API</strong> <sub>click/tap to expand</sub></summary>
 
 - Put HTTPS in front of public traffic.
 - Add authentication and authorization before exposing admin endpoints.

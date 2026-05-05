@@ -177,8 +177,12 @@ docker compose up --build -d
 
 Этот репозиторий - backend-часть интернет-магазина. Публичный сайт, админ-панель, CMS или CRM должны подключаться к нему через REST API. В production наружу лучше отдавать только публичную API-точку через HTTPS, а PostgreSQL, Eureka, Config Server, Prometheus и внутренние порты сервисов оставлять закрытыми.
 
+![Нажмите, чтобы раскрыть блоки с инструкциями ниже](docs/assets/click-to-expand-ru.svg)
+
+> Каждый блок ниже раскрывается: нажмите на цветной заголовок или стрелку, чтобы открыть инструкцию.
+
 <details>
-<summary>Сайт или frontend-приложение</summary>
+<summary><strong>🟦 Сайт или frontend-приложение</strong> <sub>нажмите, чтобы раскрыть</sub></summary>
 
 Backend можно подключить к любому frontend: React, Next.js, Vue, статическому сайту, мобильному приложению или теме CMS.
 
@@ -234,7 +238,7 @@ await fetch(`${apiBaseUrl}/api/v1/shopping-cart?username=alice`, {
 </details>
 
 <details>
-<summary>Хостинг с Docker Compose</summary>
+<summary><strong>🟩 Хостинг с Docker Compose</strong> <sub>нажмите, чтобы раскрыть</sub></summary>
 
 Этот вариант подходит для VPS, выделенного сервера или платформы, где можно запускать Docker Compose.
 
@@ -268,7 +272,7 @@ curl http://localhost:8083/actuator/health
 </details>
 
 <details>
-<summary>Reverse proxy для одного публичного API-домена</summary>
+<summary><strong>🟪 Reverse proxy для одного публичного API-домена</strong> <sub>нажмите, чтобы раскрыть</sub></summary>
 
 Reverse proxy нужен, чтобы сайт работал с одним стабильным API URL, а микросервисы оставались разделёнными внутри сервера.
 
@@ -316,7 +320,7 @@ Swagger, Actuator, Prometheus и Grafana открывайте наружу то�
 </details>
 
 <details>
-<summary>Интеграция с CMS или CRM</summary>
+<summary><strong>🟨 Интеграция с CMS или CRM</strong> <sub>нажмите, чтобы раскрыть</sub></summary>
 
 CMS или CRM подключаются как внешний REST-клиент. Они должны обращаться к тому же публичному API-домену, который использует сайт.
 
@@ -338,7 +342,7 @@ CMS или CRM подключаются как внешний REST-клиент.
 </details>
 
 <details>
-<summary>Production checklist перед публикацией API</summary>
+<summary><strong>🟥 Production checklist перед публикацией API</strong> <sub>нажмите, чтобы раскрыть</sub></summary>
 
 - Поставить HTTPS перед публичным трафиком.
 - Добавить authentication и authorization перед публикацией админских endpoint'ов.
