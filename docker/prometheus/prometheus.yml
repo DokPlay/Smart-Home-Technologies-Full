@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+scrape_configs:
+  - job_name: smart-home-services
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - eureka-server:8761
+        labels:
+          application: eureka-server
+      - targets:
+          - config-server:8888
+        labels:
+          application: config-server
+      - targets:
+          - shopping-store:8080
+        labels:
+          application: shopping-store
+      - targets:
+          - shopping-cart:8080
+        labels:
+          application: shopping-cart
+      - targets:
+          - warehouse:8080
+        labels:
+          application: warehouse
