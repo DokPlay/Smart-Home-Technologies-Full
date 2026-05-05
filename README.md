@@ -177,8 +177,9 @@ docker compose up --build -d
 
 This repository is the backend part of the store. A public website, admin panel, CMS, or CRM should connect to it through REST APIs. In production, expose only the public API entrypoint through HTTPS; keep PostgreSQL, Eureka, Config Server, Prometheus, and internal service ports private.
 
-> [!TIP]
-> Click the arrow below to expand the information for each section.
+<a aria-label="Expandable sections hint">
+  <img src="docs/assets/click-to-expand.svg" alt="Click the arrows below to expand each section" width="980">
+</a>
 
 <details>
 <summary><strong>🟦 Website or frontend application</strong> <sub>click/tap to expand</sub></summary>

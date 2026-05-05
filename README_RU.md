@@ -177,8 +177,9 @@ docker compose up --build -d
 
 Этот репозиторий - backend-часть интернет-магазина. Публичный сайт, админ-панель, CMS или CRM должны подключаться к нему через REST API. В production наружу лучше отдавать только публичную API-точку через HTTPS, а PostgreSQL, Eureka, Config Server, Prometheus и внутренние порты сервисов оставлять закрытыми.
 
-> [!TIP]
-> Нажмите на стрелочку ниже, чтобы раскрыть информацию по каждому пункту.
+<a aria-label="Подсказка для раскрывающихся разделов">
+  <img src="docs/assets/click-to-expand-ru.svg" alt="Нажмите стрелочки ниже, чтобы раскрыть пункты" width="980">
+</a>
 
 <details>
 <summary><strong>🟦 Сайт или frontend-приложение</strong> <sub>нажмите, чтобы раскрыть</sub></summary>
