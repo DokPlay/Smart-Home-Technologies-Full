@@ -1,5 +1,8 @@
 package com.smarthome.commerce.api.warehouse;
 
+import java.util.Map;
+import java.util.UUID;
+
 import com.smarthome.commerce.api.cart.ShoppingCartDto;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
@@ -27,6 +30,21 @@ public class WarehouseFeignFallbackFactory implements FallbackFactory<WarehouseA
 
         @Override
         public BookedProductsDto checkProductQuantityEnoughForShoppingCart(ShoppingCartDto shoppingCart) {
+            throw unavailable();
+        }
+
+        @Override
+        public BookedProductsDto assemblyProductsForOrder(AssemblyProductsForOrderRequest request) {
+            throw unavailable();
+        }
+
+        @Override
+        public void shippedToDelivery(ShippedToDeliveryRequest request) {
+            throw unavailable();
+        }
+
+        @Override
+        public void acceptReturn(Map<UUID, Long> products) {
             throw unavailable();
         }
 

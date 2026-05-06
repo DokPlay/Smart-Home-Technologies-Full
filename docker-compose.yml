@@ -43,6 +43,21 @@ services:
       timeout: 5s
       retries: 30
 
+  postgres-init-schemas:
+    image: postgres:16-alpine
+    environment:
+      PGPASSWORD: smarthome
+    command: >
+      sh -c "psql -h postgres -U smarthome -d smarthome -v ON_ERROR_STOP=1
+      -c 'CREATE SCHEMA IF NOT EXISTS shopping_store;'
+      -c 'CREATE SCHEMA IF NOT EXISTS shopping_cart;'
+      -c 'CREATE SCHEMA IF NOT EXISTS warehouse;'
+      -c 'CREATE SCHEMA IF NOT EXISTS orders;'
+      -c 'CREATE SCHEMA IF NOT EXISTS payment;'
+      -c 'CREATE SCHEMA IF NOT EXISTS delivery;'"
+    depends_on:
+      postgres:
+        condition: service_healthy
   config-server:
     image: smart-home/config-server:local
     build:
@@ -83,8 +98,8 @@ services:
       timeout: 5s
       retries: 30
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres-init-schemas:
+        condition: service_completed_successfully
       eureka-server:
         condition: service_healthy
       config-server:
@@ -109,8 +124,8 @@ services:
       timeout: 5s
       retries: 30
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres-init-schemas:
+        condition: service_completed_successfully
       eureka-server:
         condition: service_healthy
       config-server:
@@ -135,13 +150,117 @@ services:
       timeout: 5s
       retries: 30
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres-init-schemas:
+        condition: service_completed_successfully
       eureka-server:
         condition: service_healthy
       config-server:
         condition: service_healthy
       warehouse:
+        condition: service_healthy
+
+  order:
+    image: smart-home/order:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: commerce/order
+    environment:
+      <<: *commerce-environment
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smarthome?currentSchema=orders
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: orders
+    ports:
+      - "8084:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      postgres-init-schemas:
+        condition: service_completed_successfully
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+  payment:
+    image: smart-home/payment:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: commerce/payment
+    environment:
+      <<: *commerce-environment
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smarthome?currentSchema=payment
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: payment
+    ports:
+      - "8085:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      postgres-init-schemas:
+        condition: service_completed_successfully
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+  delivery:
+    image: smart-home/delivery:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: commerce/delivery
+    environment:
+      <<: *commerce-environment
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smarthome?currentSchema=delivery
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: delivery
+    ports:
+      - "8086-8087:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      postgres-init-schemas:
+        condition: service_completed_successfully
+      eureka-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+  api-gateway:
+    image: smart-home/api-gateway:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: api-gateway
+    environment:
+      SERVER_PORT: 8080
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      EUREKA_INSTANCE_NON_SECURE_PORT: 8080
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
 
   prometheus:
@@ -165,6 +284,14 @@ services:
       shopping-cart:
         condition: service_healthy
       warehouse:
+        condition: service_healthy
+      order:
+        condition: service_healthy
+      payment:
+        condition: service_healthy
+      delivery:
+        condition: service_healthy
+      api-gateway:
         condition: service_healthy
 
   grafana:

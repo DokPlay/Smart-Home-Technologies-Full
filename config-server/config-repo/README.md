@@ -6,6 +6,10 @@ Structure:
 - `shopping-store.yml` — config for `shopping-store` service
 - `shopping-cart.yml` — config for `shopping-cart` service
 - `warehouse.yml` — config for `warehouse` service
+- `order.yml` — config for `order` service
+- `payment.yml` — config for `payment` service
+- `delivery.yml` — config for `delivery` service
+- `api-gateway.yml` — config for Gateway routes
 
 How to use:
 1. Run `config-server` (it reads `config-repo` via `spring.cloud.config.server.native.search-locations`).

@@ -5,18 +5,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.smarthome.commerce.api.warehouse.AssemblyProductsForOrderRequest;
 import com.smarthome.commerce.api.cart.ShoppingCartDto;
 import com.smarthome.commerce.api.warehouse.AddProductToWarehouseRequest;
 import com.smarthome.commerce.api.warehouse.AddressDto;
 import com.smarthome.commerce.api.warehouse.BookedProductsDto;
 import com.smarthome.commerce.api.warehouse.DimensionDto;
 import com.smarthome.commerce.api.warehouse.NewProductInWarehouseRequest;
+import com.smarthome.commerce.api.warehouse.ShippedToDeliveryRequest;
 import com.smarthome.commerce.warehouse.exception.InvalidWarehouseProductRequestException;
 import com.smarthome.commerce.warehouse.exception.InvalidWarehouseProductQuantityException;
 import com.smarthome.commerce.warehouse.exception.NoSpecifiedProductInWarehouseException;
 import com.smarthome.commerce.warehouse.exception.ProductInShoppingCartLowQuantityInWarehouseException;
 import com.smarthome.commerce.warehouse.exception.SpecifiedProductAlreadyInWarehouseException;
+import com.smarthome.commerce.warehouse.model.OrderBookingEntity;
 import com.smarthome.commerce.warehouse.model.WarehouseProductEntity;
+import com.smarthome.commerce.warehouse.repository.OrderBookingRepository;
 import com.smarthome.commerce.warehouse.repository.WarehouseProductRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,9 +32,12 @@ public class WarehouseService {
     private static final String CURRENT_ADDRESS = ADDRESSES[new SecureRandom().nextInt(ADDRESSES.length)];
 
     private final WarehouseProductRepository warehouseProductRepository;
+    private final OrderBookingRepository orderBookingRepository;
 
-    public WarehouseService(WarehouseProductRepository warehouseProductRepository) {
+    public WarehouseService(WarehouseProductRepository warehouseProductRepository,
+                            OrderBookingRepository orderBookingRepository) {
         this.warehouseProductRepository = warehouseProductRepository;
+        this.orderBookingRepository = orderBookingRepository;
     }
 
     @Transactional
@@ -92,6 +99,45 @@ public class WarehouseService {
         }
 
         return new BookedProductsDto(deliveryWeight, deliveryVolume, fragile);
+    }
+
+    @Transactional
+    public BookedProductsDto assemblyProductsForOrder(AssemblyProductsForOrderRequest request) {
+        if (request == null || request.orderId() == null || request.products() == null || request.products().isEmpty()) {
+            throw new InvalidWarehouseProductRequestException("Order id and products must be filled");
+        }
+
+        BookedProductsDto booking = checkProductQuantityEnoughForShoppingCart(
+                new ShoppingCartDto(null, request.products())
+        );
+        request.products().forEach((productId, quantity) -> findProduct(productId).removeQuantity(quantity));
+        orderBookingRepository.save(new OrderBookingEntity(request.orderId(), request.products()));
+        return booking;
+    }
+
+    @Transactional
+    public void shippedToDelivery(ShippedToDeliveryRequest request) {
+        if (request == null || request.orderId() == null || request.deliveryId() == null) {
+            throw new InvalidWarehouseProductRequestException("Order id and delivery id must be filled");
+        }
+        OrderBookingEntity booking = orderBookingRepository.findById(request.orderId())
+                .orElseThrow(() -> new InvalidWarehouseProductRequestException(
+                        "Order booking not found: " + request.orderId()
+                ));
+        booking.setDeliveryId(request.deliveryId());
+    }
+
+    @Transactional
+    public void acceptReturn(java.util.Map<UUID, Long> products) {
+        if (products == null || products.isEmpty()) {
+            throw new InvalidWarehouseProductRequestException("Returned products must not be empty");
+        }
+        products.forEach((productId, quantity) -> {
+            if (productId == null || quantity == null || quantity <= 0) {
+                throw new InvalidWarehouseProductRequestException("Returned product id and quantity must be filled");
+            }
+            findProduct(productId).addQuantity(quantity);
+        });
     }
 
     public AddressDto getWarehouseAddress() {

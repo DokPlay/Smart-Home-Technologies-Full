@@ -26,3 +26,19 @@ scrape_configs:
           - warehouse:8080
         labels:
           application: warehouse
+      - targets:
+          - order:8080
+        labels:
+          application: order
+      - targets:
+          - payment:8080
+        labels:
+          application: payment
+      - targets:
+          - delivery:8080
+        labels:
+          application: delivery
+      - targets:
+          - api-gateway:8080
+        labels:
+          application: api-gateway
