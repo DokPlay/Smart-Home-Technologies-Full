@@ -2,7 +2,7 @@
 
 # Smart Home Technologies - Commerce Microservices
 
-Smart Home Technologies Commerce is a Spring Boot and Spring Cloud microservice application for an online smart-home device store. It provides product catalog, shopping cart, and warehouse services with shared API contracts, service discovery, externalized configuration, and Docker-based local infrastructure.
+Smart Home Technologies Commerce is a Spring Boot and Spring Cloud microservice application for an online smart-home device store. It provides product catalog, shopping cart, warehouse, order, payment, delivery, and API Gateway services with shared API contracts, service discovery, externalized configuration, and Docker-based local infrastructure.
 
 The project is designed as a scalable backend foundation for selling smart-home devices. Each business capability is implemented as a separate service with its own data model and database schema.
 
@@ -10,12 +10,16 @@ The project is designed as a scalable backend foundation for selling smart-home 
 
 - Product catalog with category filtering, product details, soft deletion, and stock availability state.
 - Shopping cart management by username, including add, remove, quantity change, and cart deactivation.
-- Warehouse product registration, stock replenishment, stock availability checks, and warehouse address lookup.
+- Warehouse product registration, stock replenishment, stock availability checks, order assembly, delivery handoff, returns, and warehouse address lookup.
+- Order lifecycle management from cart checkout through assembly, payment, delivery, completion, failure states, and returns.
+- Payment adapter with product cost calculation through `shopping-store`, 10% tax calculation, pending/success/failed payment persistence, and callbacks to `order`.
+- Delivery adapter with delivery planning, cost calculation, pickup/success/failure state changes, and callbacks to `order` and `warehouse`.
+- API Gateway routes for `order`, `payment`, and `delivery` through Eureka-backed Load Balancer routing.
 - Shared DTO and API contracts in a dedicated `interaction-api` module.
 - Service discovery through Eureka.
 - Externalized service configuration through Spring Cloud Config.
 - Feign-based REST communication between services.
-- Circuit Breaker support for `shopping-cart -> warehouse` calls with a clear `503` response when the warehouse is unavailable.
+- Circuit Breaker and Feign fallback support for critical inter-service calls, with clear `503` responses when a dependency is unavailable.
 - Swagger/OpenAPI documentation for the commerce HTTP APIs.
 - Actuator health checks and Prometheus metrics for every Spring service.
 - Dockerized Prometheus and Grafana with a preconfigured Smart Home dashboard.
@@ -33,7 +37,11 @@ smart-home-technologies-full
     ├── interaction-api
     ├── shopping-store
     ├── shopping-cart
-    └── warehouse
+    ├── warehouse
+    ├── order
+    ├── payment
+    └── delivery
+api-gateway
 ```
 
 ### Services
@@ -42,9 +50,13 @@ smart-home-technologies-full
 | --- | ---: | --- |
 | `eureka-server` | `8761` | Service discovery |
 | `config-server` | `8888` | Centralized configuration |
+| `api-gateway` | `8080` | Public gateway for order, payment, and delivery APIs |
 | `shopping-store` | `8081` | Product catalog |
 | `shopping-cart` | `8082` | User shopping carts |
 | `warehouse` | `8083` | Stock, booking checks, warehouse address |
+| `order` | `8084` | Order lifecycle |
+| `payment` | `8085` | Payment calculation and payment state |
+| `delivery` | `8086` (`8086-8087` when scaled) | Delivery planning and delivery state |
 | `postgres` | `5432` | Shared PostgreSQL server with separate schemas |
 | `prometheus` | `9090` | Metrics scraping and querying |
 | `grafana` | `3000` | Metrics dashboards |
@@ -62,6 +74,14 @@ From the repository root:
 docker compose up --build -d
 ```
 
+To verify Load Balancer behavior for delivery, run two delivery instances:
+
+```bash
+docker compose up --build -d --scale delivery=2
+```
+
+With two instances, Docker publishes delivery on `8086` and `8087`, while Gateway continues to route through Eureka Load Balancer.
+
 Check that all containers are running:
 
 ```bash
@@ -77,6 +97,10 @@ Expected registered applications:
 - `SHOPPING-STORE`
 - `SHOPPING-CART`
 - `WAREHOUSE`
+- `ORDER`
+- `PAYMENT`
+- `DELIVERY`
+- `API-GATEWAY`
 
 Useful local URLs:
 
@@ -84,9 +108,14 @@ Useful local URLs:
 | --- | --- |
 | [http://localhost:8761](http://localhost:8761) | Eureka dashboard |
 | [http://localhost:8888/shopping-cart/default](http://localhost:8888/shopping-cart/default) | Config Server sample response |
+| [http://localhost:8080/delivery/cost](http://localhost:8080/delivery/cost) | Gateway route sample for delivery |
 | [http://localhost:8081/api/v1/shopping-store](http://localhost:8081/api/v1/shopping-store) | Product catalog API |
 | [http://localhost:8082/api/v1/shopping-cart](http://localhost:8082/api/v1/shopping-cart) | Shopping cart API |
 | [http://localhost:8083/api/v1/warehouse/address](http://localhost:8083/api/v1/warehouse/address) | Warehouse address API |
+| [http://localhost:8084/api/v1/order](http://localhost:8084/api/v1/order) | Order API |
+| [http://localhost:8085/api/v1/payment/productCost](http://localhost:8085/api/v1/payment/productCost) | Payment API |
+| [http://localhost:8086/api/v1/delivery/cost](http://localhost:8086/api/v1/delivery/cost) | Delivery API, first local instance |
+| [http://localhost:8087/api/v1/delivery/cost](http://localhost:8087/api/v1/delivery/cost) | Delivery API, second local instance when scaled |
 | [http://localhost:9090/targets](http://localhost:9090/targets) | Prometheus scrape targets |
 | [http://localhost:3000](http://localhost:3000) | Grafana dashboard, login `admin` / `admin` |
 
@@ -115,7 +144,7 @@ The test suite covers:
 - product catalog contract and service behavior;
 - shopping cart contract and business rules;
 - warehouse stock logic and booking calculations;
-- Feign fallback behavior for unavailable warehouse service;
+- Feign fallback behavior for unavailable downstream services;
 - Actuator health and Prometheus endpoint exposure for all Spring services.
 
 ## API Documentation
@@ -127,6 +156,9 @@ Swagger UI is available for the commerce services when the stack is running:
 | `shopping-store` | [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html) | [http://localhost:8081/v3/api-docs](http://localhost:8081/v3/api-docs) |
 | `shopping-cart` | [http://localhost:8082/swagger-ui.html](http://localhost:8082/swagger-ui.html) | [http://localhost:8082/v3/api-docs](http://localhost:8082/v3/api-docs) |
 | `warehouse` | [http://localhost:8083/swagger-ui.html](http://localhost:8083/swagger-ui.html) | [http://localhost:8083/v3/api-docs](http://localhost:8083/v3/api-docs) |
+| `order` | [http://localhost:8084/swagger-ui.html](http://localhost:8084/swagger-ui.html) | [http://localhost:8084/v3/api-docs](http://localhost:8084/v3/api-docs) |
+| `payment` | [http://localhost:8085/swagger-ui.html](http://localhost:8085/swagger-ui.html) | [http://localhost:8085/v3/api-docs](http://localhost:8085/v3/api-docs) |
+| `delivery` | [http://localhost:8086/swagger-ui.html](http://localhost:8086/swagger-ui.html) | [http://localhost:8086/v3/api-docs](http://localhost:8086/v3/api-docs) |
 
 ## Observability
 
@@ -139,6 +171,10 @@ Every Spring service exposes Actuator health and Prometheus metrics. Docker Comp
 | `shopping-store` | [http://localhost:8081/actuator/health](http://localhost:8081/actuator/health) | [http://localhost:8081/actuator/prometheus](http://localhost:8081/actuator/prometheus) |
 | `shopping-cart` | [http://localhost:8082/actuator/health](http://localhost:8082/actuator/health) | [http://localhost:8082/actuator/prometheus](http://localhost:8082/actuator/prometheus) |
 | `warehouse` | [http://localhost:8083/actuator/health](http://localhost:8083/actuator/health) | [http://localhost:8083/actuator/prometheus](http://localhost:8083/actuator/prometheus) |
+| `order` | [http://localhost:8084/actuator/health](http://localhost:8084/actuator/health) | [http://localhost:8084/actuator/prometheus](http://localhost:8084/actuator/prometheus) |
+| `payment` | [http://localhost:8085/actuator/health](http://localhost:8085/actuator/health) | [http://localhost:8085/actuator/prometheus](http://localhost:8085/actuator/prometheus) |
+| `delivery` | [http://localhost:8086/actuator/health](http://localhost:8086/actuator/health) | [http://localhost:8086/actuator/prometheus](http://localhost:8086/actuator/prometheus) |
+| `api-gateway` | [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) | [http://localhost:8080/actuator/prometheus](http://localhost:8080/actuator/prometheus) |
 
 Prometheus is available at [http://localhost:9090](http://localhost:9090). Use [http://localhost:9090/targets](http://localhost:9090/targets) to verify that all service targets are `UP`.
 
@@ -336,9 +372,11 @@ Typical CRM integration:
 
 - sync product catalog data from `shopping-store`;
 - send cart or lead data from the website to the CRM through a small integration service;
-- later, when order, payment, and delivery services are added, sync orders and order statuses from those services.
+- sync orders and order statuses from `order`;
+- sync payment status from `payment`;
+- sync delivery status from `delivery`.
 
-Current sprint scope includes product catalog, shopping cart, and warehouse. Full order, payment, and delivery CRM synchronization should be added after those services exist.
+Current sprint scope includes product catalog, shopping cart, warehouse, order, payment, delivery, and Gateway services. CRM synchronization can now use the order, payment, and delivery APIs as backend integration points.
 
 </details>
 
@@ -372,6 +410,10 @@ Then start the commerce services:
 mvn -pl commerce/warehouse spring-boot:run
 mvn -pl commerce/shopping-store spring-boot:run
 mvn -pl commerce/shopping-cart spring-boot:run
+mvn -pl commerce/order spring-boot:run
+mvn -pl commerce/payment spring-boot:run
+mvn -pl commerce/delivery spring-boot:run
+mvn -pl api-gateway spring-boot:run
 ```
 
 When running without Docker, the commerce services use the configuration from `config-server/config-repo` and default to in-memory H2 databases unless datasource environment variables are provided.
@@ -406,7 +448,34 @@ Base path: `/api/v1/warehouse`
 - `PUT /api/v1/warehouse`
 - `POST /api/v1/warehouse/add`
 - `POST /api/v1/warehouse/check`
+- `POST /api/v1/warehouse/assembly`
+- `POST /api/v1/warehouse/shipped`
+- `POST /api/v1/warehouse/return`
 - `GET /api/v1/warehouse/address`
+
+### Order, Payment, Delivery
+
+Gateway paths:
+
+- `PUT /order` routes to `order` as `/api/v1/order`
+- `GET /order?username=alice` routes to `order` as `/api/v1/order?username=alice`
+- `POST /order/calculate/delivery` routes to `order` as `/api/v1/order/calculate/delivery`
+- `POST /order/calculate/total` routes to `order` as `/api/v1/order/calculate/total`
+- `POST /order/assembly` routes to `order` as `/api/v1/order/assembly`
+- `POST /order/payment` routes to `order` as `/api/v1/order/payment`
+- `POST /order/delivery` routes to `order` as `/api/v1/order/delivery`
+- `POST /order/completed` routes to `order` as `/api/v1/order/completed`
+- `POST /order/return` routes to `order` as `/api/v1/order/return`
+- `POST /payment` routes to `payment` as `/api/v1/payment`
+- `POST /delivery/cost` routes to `delivery` as `/api/v1/delivery/cost`
+- `POST /payment/productCost` routes to `payment` as `/api/v1/payment/productCost`
+- `POST /payment/totalCost` routes to `payment` as `/api/v1/payment/totalCost`
+- `POST /payment/refund` routes to `payment` as `/api/v1/payment/refund`
+- `POST /payment/failed` routes to `payment` as `/api/v1/payment/failed`
+- `PUT /delivery` routes to `delivery` as `/api/v1/delivery`
+- `POST /delivery/picked` routes to `delivery` as `/api/v1/delivery/picked`
+- `POST /delivery/successful` routes to `delivery` as `/api/v1/delivery/successful`
+- `POST /delivery/failed` routes to `delivery` as `/api/v1/delivery/failed`
 
 ## Configuration
 
@@ -421,10 +490,15 @@ Docker uses environment variables from `docker-compose.yml` to connect services 
 - `shopping_store`
 - `shopping_cart`
 - `warehouse`
+- `orders`
+- `payment`
+- `delivery`
 
 ## Circuit Breaker Behavior
 
-`shopping-cart` calls `warehouse` through a Feign client. If the warehouse service is unavailable, the Circuit Breaker fallback returns an immediate meaningful response:
+Commerce services call each other through Feign clients. Critical calls use Circuit Breaker fallbacks so unavailable dependencies return immediate meaningful `503 Service Unavailable` responses instead of leaking low-level Feign errors.
+
+For example, if `warehouse` is unavailable while `shopping-cart` checks stock availability, the response is:
 
 ```json
 {
@@ -434,3 +508,5 @@ Docker uses environment variables from `docker-compose.yml` to connect services 
 ```
 
 HTTP status: `503 Service Unavailable`.
+
+The new order, payment, and delivery flows also have fallbacks for calls between `order`, `payment`, `delivery`, `warehouse`, and `shopping-store`.

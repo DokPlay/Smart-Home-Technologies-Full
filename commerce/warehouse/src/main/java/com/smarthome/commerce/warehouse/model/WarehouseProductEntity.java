@@ -64,4 +64,8 @@ public class WarehouseProductEntity {
     public void addQuantity(long quantity) {
         this.quantity += quantity;
     }
+
+    public void removeQuantity(long quantity) {
+        this.quantity -= quantity;
+    }
 }

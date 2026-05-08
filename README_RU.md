@@ -2,7 +2,7 @@
 
 # Smart Home Technologies - Commerce Microservices
 
-Smart Home Technologies Commerce - это микросервисное приложение на Spring Boot и Spring Cloud для интернет-магазина устройств умного дома. Проект включает витрину товаров, корзину пользователя и склад, а также общие API-контракты, service discovery, внешнюю конфигурацию и локальный запуск через Docker.
+Smart Home Technologies Commerce - это микросервисное приложение на Spring Boot и Spring Cloud для интернет-магазина устройств умного дома. Проект включает витрину товаров, корзину пользователя, склад, заказы, оплату, доставку и API Gateway, а также общие API-контракты, service discovery, внешнюю конфигурацию и локальный запуск через Docker.
 
 Проект сделан как масштабируемая backend-основа для продажи устройств Smart Home Technologies. Каждая бизнес-возможность вынесена в отдельный сервис со своей моделью данных и отдельной схемой базы данных.
 
@@ -10,12 +10,16 @@ Smart Home Technologies Commerce - это микросервисное прил�
 
 - Витрина товаров с фильтрацией по категории, просмотром карточки товара, мягким удалением и состоянием доступного количества.
 - Корзина пользователя по имени пользователя: добавление, удаление, изменение количества и деактивация корзины.
-- Склад: регистрация товара, пополнение остатков, проверка доступности товаров и получение адреса склада.
+- Склад: регистрация товара, пополнение остатков, проверка доступности товаров, сборка заказа, передача в доставку, возвраты и получение адреса склада.
+- Управление заказами от оформления по корзине до сборки, оплаты, доставки, завершения, ошибок и возврата.
+- Адаптер оплаты с расчётом стоимости товаров через `shopping-store`, НДС 10%, сохранением статусов `PENDING`/`SUCCESS`/`FAILED` и обратными вызовами в `order`.
+- Адаптер доставки с планированием доставки, расчётом стоимости, статусами получения/успеха/ошибки и обратными вызовами в `order` и `warehouse`.
+- API Gateway с маршрутами для `order`, `payment` и `delivery` через Eureka Load Balancer.
 - Общие DTO и API-контракты в отдельном модуле `interaction-api`.
 - Service Discovery через Eureka.
 - Внешняя конфигурация через Spring Cloud Config.
 - REST-взаимодействие между сервисами через Feign.
-- Circuit Breaker для вызовов `shopping-cart -> warehouse` с понятным ответом `503`, если склад недоступен.
+- Circuit Breaker и Feign fallback для критичных межсервисных вызовов с понятным ответом `503`, если зависимый сервис недоступен.
 - Swagger/OpenAPI-документация для HTTP API commerce-сервисов.
 - Actuator health checks и Prometheus-метрики в каждом Spring-сервисе.
 - Prometheus и Grafana в Docker с заранее настроенным дашбордом Smart Home.
@@ -33,7 +37,11 @@ smart-home-technologies-full
     ├── interaction-api
     ├── shopping-store
     ├── shopping-cart
-    └── warehouse
+    ├── warehouse
+    ├── order
+    ├── payment
+    └── delivery
+api-gateway
 ```
 
 ### Сервисы
@@ -42,9 +50,13 @@ smart-home-technologies-full
 | --- | ---: | --- |
 | `eureka-server` | `8761` | Service Discovery |
 | `config-server` | `8888` | Централизованная конфигурация |
+| `api-gateway` | `8080` | Единая точка входа для order, payment и delivery |
 | `shopping-store` | `8081` | Витрина товаров |
 | `shopping-cart` | `8082` | Корзина пользователя |
 | `warehouse` | `8083` | Остатки, проверка бронирования, адрес склада |
+| `order` | `8084` | Жизненный цикл заказа |
+| `payment` | `8085` | Расчёт и состояние оплаты |
+| `delivery` | `8086` (`8086-8087` при масштабировании) | Планирование и состояние доставки |
 | `postgres` | `5432` | Общий PostgreSQL-сервер с отдельными схемами |
 | `prometheus` | `9090` | Сбор и запрос метрик |
 | `grafana` | `3000` | Дашборды метрик |
@@ -62,6 +74,14 @@ smart-home-technologies-full
 docker compose up --build -d
 ```
 
+Чтобы проверить Load Balancer для доставки, запустите два экземпляра `delivery`:
+
+```bash
+docker compose up --build -d --scale delivery=2
+```
+
+При двух экземплярах Docker публикует доставку на `8086` и `8087`, а Gateway продолжает маршрутизировать запросы через Eureka Load Balancer.
+
 Проверить, что контейнеры запущены:
 
 ```bash
@@ -77,6 +97,10 @@ docker compose ps
 - `SHOPPING-STORE`
 - `SHOPPING-CART`
 - `WAREHOUSE`
+- `ORDER`
+- `PAYMENT`
+- `DELIVERY`
+- `API-GATEWAY`
 
 Полезные локальные адреса:
 
@@ -84,9 +108,14 @@ docker compose ps
 | --- | --- |
 | [http://localhost:8761](http://localhost:8761) | Панель Eureka |
 | [http://localhost:8888/shopping-cart/default](http://localhost:8888/shopping-cart/default) | Пример ответа Config Server |
+| [http://localhost:8080/delivery/cost](http://localhost:8080/delivery/cost) | Пример маршрута Gateway для доставки |
 | [http://localhost:8081/api/v1/shopping-store](http://localhost:8081/api/v1/shopping-store) | API витрины товаров |
 | [http://localhost:8082/api/v1/shopping-cart](http://localhost:8082/api/v1/shopping-cart) | API корзины |
 | [http://localhost:8083/api/v1/warehouse/address](http://localhost:8083/api/v1/warehouse/address) | API адреса склада |
+| [http://localhost:8084/api/v1/order](http://localhost:8084/api/v1/order) | API заказов |
+| [http://localhost:8085/api/v1/payment/productCost](http://localhost:8085/api/v1/payment/productCost) | API оплаты |
+| [http://localhost:8086/api/v1/delivery/cost](http://localhost:8086/api/v1/delivery/cost) | API доставки, первый локальный экземпляр |
+| [http://localhost:8087/api/v1/delivery/cost](http://localhost:8087/api/v1/delivery/cost) | API доставки, второй локальный экземпляр при масштабировании |
 | [http://localhost:9090/targets](http://localhost:9090/targets) | Targets в Prometheus |
 | [http://localhost:3000](http://localhost:3000) | Grafana, логин `admin` / `admin` |
 
@@ -115,7 +144,7 @@ mvn clean verify
 - контракт и бизнес-логика витрины товаров;
 - контракт и бизнес-правила корзины;
 - складская логика и расчёт параметров бронирования;
-- fallback-поведение Feign-клиента при недоступном складе;
+- fallback-поведение Feign-клиентов при недоступных зависимых сервисах;
 - доступность Actuator health и Prometheus endpoint'ов во всех Spring-сервисах.
 
 ## API-документация
@@ -127,6 +156,9 @@ Swagger UI доступен для commerce-сервисов после запу
 | `shopping-store` | [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html) | [http://localhost:8081/v3/api-docs](http://localhost:8081/v3/api-docs) |
 | `shopping-cart` | [http://localhost:8082/swagger-ui.html](http://localhost:8082/swagger-ui.html) | [http://localhost:8082/v3/api-docs](http://localhost:8082/v3/api-docs) |
 | `warehouse` | [http://localhost:8083/swagger-ui.html](http://localhost:8083/swagger-ui.html) | [http://localhost:8083/v3/api-docs](http://localhost:8083/v3/api-docs) |
+| `order` | [http://localhost:8084/swagger-ui.html](http://localhost:8084/swagger-ui.html) | [http://localhost:8084/v3/api-docs](http://localhost:8084/v3/api-docs) |
+| `payment` | [http://localhost:8085/swagger-ui.html](http://localhost:8085/swagger-ui.html) | [http://localhost:8085/v3/api-docs](http://localhost:8085/v3/api-docs) |
+| `delivery` | [http://localhost:8086/swagger-ui.html](http://localhost:8086/swagger-ui.html) | [http://localhost:8086/v3/api-docs](http://localhost:8086/v3/api-docs) |
 
 ## Наблюдаемость
 
@@ -139,6 +171,10 @@ Swagger UI доступен для commerce-сервисов после запу
 | `shopping-store` | [http://localhost:8081/actuator/health](http://localhost:8081/actuator/health) | [http://localhost:8081/actuator/prometheus](http://localhost:8081/actuator/prometheus) |
 | `shopping-cart` | [http://localhost:8082/actuator/health](http://localhost:8082/actuator/health) | [http://localhost:8082/actuator/prometheus](http://localhost:8082/actuator/prometheus) |
 | `warehouse` | [http://localhost:8083/actuator/health](http://localhost:8083/actuator/health) | [http://localhost:8083/actuator/prometheus](http://localhost:8083/actuator/prometheus) |
+| `order` | [http://localhost:8084/actuator/health](http://localhost:8084/actuator/health) | [http://localhost:8084/actuator/prometheus](http://localhost:8084/actuator/prometheus) |
+| `payment` | [http://localhost:8085/actuator/health](http://localhost:8085/actuator/health) | [http://localhost:8085/actuator/prometheus](http://localhost:8085/actuator/prometheus) |
+| `delivery` | [http://localhost:8086/actuator/health](http://localhost:8086/actuator/health) | [http://localhost:8086/actuator/prometheus](http://localhost:8086/actuator/prometheus) |
+| `api-gateway` | [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) | [http://localhost:8080/actuator/prometheus](http://localhost:8080/actuator/prometheus) |
 
 Prometheus доступен по адресу [http://localhost:9090](http://localhost:9090). На странице [http://localhost:9090/targets](http://localhost:9090/targets) можно проверить, что все service targets находятся в состоянии `UP`.
 
@@ -336,9 +372,11 @@ CMS или CRM подключаются как внешний REST-клиент.
 
 - синхронизация каталога товаров из `shopping-store`;
 - отправка данных корзины или заявок с сайта в CRM через небольшой integration-service;
-- после добавления order, payment и delivery сервисов - синхронизация заказов и статусов заказов.
+- синхронизация заказов и статусов из `order`;
+- синхронизация статусов оплат из `payment`;
+- синхронизация статусов доставки из `delivery`.
 
-В текущем спринте реализованы витрина, корзина и склад. Полную CRM-синхронизацию заказов, оплат и доставок логично добавлять после появления соответствующих сервисов.
+В текущем спринте реализованы витрина, корзина, склад, заказы, оплата, доставка и Gateway. CRM-синхронизацию теперь можно строить поверх API заказов, оплат и доставок.
 
 </details>
 
@@ -372,6 +410,10 @@ mvn -pl config-server spring-boot:run
 mvn -pl commerce/warehouse spring-boot:run
 mvn -pl commerce/shopping-store spring-boot:run
 mvn -pl commerce/shopping-cart spring-boot:run
+mvn -pl commerce/order spring-boot:run
+mvn -pl commerce/payment spring-boot:run
+mvn -pl commerce/delivery spring-boot:run
+mvn -pl api-gateway spring-boot:run
 ```
 
 При запуске без Docker commerce-сервисы берут настройки из `config-server/config-repo` и по умолчанию используют in-memory H2, если не переданы переменные окружения для datasource.
@@ -406,7 +448,34 @@ Base path: `/api/v1/warehouse`
 - `PUT /api/v1/warehouse`
 - `POST /api/v1/warehouse/add`
 - `POST /api/v1/warehouse/check`
+- `POST /api/v1/warehouse/assembly`
+- `POST /api/v1/warehouse/shipped`
+- `POST /api/v1/warehouse/return`
 - `GET /api/v1/warehouse/address`
+
+### Order, Payment, Delivery
+
+Маршруты Gateway:
+
+- `PUT /order` перенаправляется в `order` как `/api/v1/order`
+- `GET /order?username=alice` перенаправляется в `order` как `/api/v1/order?username=alice`
+- `POST /order/calculate/delivery` перенаправляется в `order` как `/api/v1/order/calculate/delivery`
+- `POST /order/calculate/total` перенаправляется в `order` как `/api/v1/order/calculate/total`
+- `POST /order/assembly` перенаправляется в `order` как `/api/v1/order/assembly`
+- `POST /order/payment` перенаправляется в `order` как `/api/v1/order/payment`
+- `POST /order/delivery` перенаправляется в `order` как `/api/v1/order/delivery`
+- `POST /order/completed` перенаправляется в `order` как `/api/v1/order/completed`
+- `POST /order/return` перенаправляется в `order` как `/api/v1/order/return`
+- `POST /payment` перенаправляется в `payment` как `/api/v1/payment`
+- `POST /delivery/cost` перенаправляется в `delivery` как `/api/v1/delivery/cost`
+- `POST /payment/productCost` перенаправляется в `payment` как `/api/v1/payment/productCost`
+- `POST /payment/totalCost` перенаправляется в `payment` как `/api/v1/payment/totalCost`
+- `POST /payment/refund` перенаправляется в `payment` как `/api/v1/payment/refund`
+- `POST /payment/failed` перенаправляется в `payment` как `/api/v1/payment/failed`
+- `PUT /delivery` перенаправляется в `delivery` как `/api/v1/delivery`
+- `POST /delivery/picked` перенаправляется в `delivery` как `/api/v1/delivery/picked`
+- `POST /delivery/successful` перенаправляется в `delivery` как `/api/v1/delivery/successful`
+- `POST /delivery/failed` перенаправляется в `delivery` как `/api/v1/delivery/failed`
 
 ## Конфигурация
 
@@ -421,10 +490,15 @@ Docker использует переменные окружения из `docker
 - `shopping_store`
 - `shopping_cart`
 - `warehouse`
+- `orders`
+- `payment`
+- `delivery`
 
 ## Поведение Circuit Breaker
 
-`shopping-cart` обращается к `warehouse` через Feign-клиент. Если сервис склада недоступен, Circuit Breaker fallback быстро возвращает понятный ответ:
+Commerce-сервисы обращаются друг к другу через Feign-клиенты. Критичные вызовы используют Circuit Breaker fallback, поэтому недоступные зависимости возвращают понятный `503 Service Unavailable`, а не низкоуровневые Feign-ошибки.
+
+Например, если `warehouse` недоступен во время проверки остатков из `shopping-cart`, ответ будет таким:
 
 ```json
 {
@@ -434,3 +508,5 @@ Docker использует переменные окружения из `docker
 ```
 
 HTTP-статус: `503 Service Unavailable`.
+
+Новые сценарии заказов, оплат и доставок также имеют fallback-и для вызовов между `order`, `payment`, `delivery`, `warehouse` и `shopping-store`.

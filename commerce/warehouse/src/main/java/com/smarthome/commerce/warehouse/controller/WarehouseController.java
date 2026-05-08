@@ -1,10 +1,15 @@
 package com.smarthome.commerce.warehouse.controller;
 
+import java.util.Map;
+import java.util.UUID;
+
 import com.smarthome.commerce.api.cart.ShoppingCartDto;
 import com.smarthome.commerce.api.warehouse.AddProductToWarehouseRequest;
 import com.smarthome.commerce.api.warehouse.AddressDto;
+import com.smarthome.commerce.api.warehouse.AssemblyProductsForOrderRequest;
 import com.smarthome.commerce.api.warehouse.BookedProductsDto;
 import com.smarthome.commerce.api.warehouse.NewProductInWarehouseRequest;
+import com.smarthome.commerce.api.warehouse.ShippedToDeliveryRequest;
 import com.smarthome.commerce.api.warehouse.WarehouseApi;
 import com.smarthome.commerce.warehouse.service.WarehouseService;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,6 +33,21 @@ public class WarehouseController implements WarehouseApi {
     @Override
     public BookedProductsDto checkProductQuantityEnoughForShoppingCart(ShoppingCartDto shoppingCart) {
         return warehouseService.checkProductQuantityEnoughForShoppingCart(shoppingCart);
+    }
+
+    @Override
+    public BookedProductsDto assemblyProductsForOrder(AssemblyProductsForOrderRequest request) {
+        return warehouseService.assemblyProductsForOrder(request);
+    }
+
+    @Override
+    public void shippedToDelivery(ShippedToDeliveryRequest request) {
+        warehouseService.shippedToDelivery(request);
+    }
+
+    @Override
+    public void acceptReturn(Map<UUID, Long> products) {
+        warehouseService.acceptReturn(products);
     }
 
     @Override

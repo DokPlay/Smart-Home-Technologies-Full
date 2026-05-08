@@ -1,10 +1,21 @@
 package com.smarthome.commerce.api.order;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
-import com.smarthome.commerce.api.cart.CartItemDto;
-
-public record OrderDto(UUID id, String username, List<CartItemDto> items, BigDecimal total, String status) {
+public record OrderDto(
+        UUID orderId,
+        UUID shoppingCartId,
+        Map<UUID, Long> products,
+        UUID paymentId,
+        UUID deliveryId,
+        OrderState state,
+        Double deliveryWeight,
+        Double deliveryVolume,
+        Boolean fragile,
+        BigDecimal totalPrice,
+        BigDecimal deliveryPrice,
+        BigDecimal productPrice
+) {
 }
